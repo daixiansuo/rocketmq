@@ -87,7 +87,7 @@ public class NamesrvStartup {
         // 设置暴露端口 9876
         nettyServerConfig.setListenPort(9876);
 
-        // NameSrv 配置文件是否指定，如果指定则进行解析配置文件
+        // NameSrv 是否指定配置文件，如果指定则进行解析配置文件
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
