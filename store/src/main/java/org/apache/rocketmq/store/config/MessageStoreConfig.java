@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 
@@ -28,7 +29,7 @@ public class MessageStoreConfig {
     //The directory in which the commitlog is kept
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+            + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
@@ -105,6 +106,12 @@ public class MessageStoreConfig {
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
+
+    /**
+     * accessMessageInMemoryMaxRatio 字段表示内存中最大存储消息的比例，默认值为40。
+     * 在消息存储过程中，RocketMQ会将消息先存储在内存中，当内存中的消息数量达到一定比例后，会将部分消息转移到磁盘中进行持久化存储。
+     * accessMessageInMemoryMaxRatio 字段的值就是指定了内存中存储消息的比例，当内存中的消息数量达到这个比例时，就会触发消息的持久化操作
+     */
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
     @ImportantField
@@ -616,7 +623,7 @@ public class MessageStoreConfig {
      */
     public boolean isTransientStorePoolEnable() {
         return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType()
-            && BrokerRole.SLAVE != getBrokerRole();
+                && BrokerRole.SLAVE != getBrokerRole();
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
