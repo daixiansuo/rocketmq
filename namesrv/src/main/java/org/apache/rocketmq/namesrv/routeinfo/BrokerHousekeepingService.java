@@ -23,6 +23,10 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 
+/**
+ * TODO： org.apache.rocketmq.remoting.netty.NettyRemotingServer.NettyConnectManageHandler 连接管理处理器，事件回调
+ * 作用：用于在 通道关闭、通道异常、通道心跳超时 时，销毁 channel 对应 brokerAddress 在 路由表中的信息，以及关闭 channel ！！
+ */
 public class BrokerHousekeepingService implements ChannelEventListener {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final NamesrvController namesrvController;

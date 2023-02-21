@@ -54,6 +54,10 @@ public class NamesrvController {
 
     private RemotingServer remotingServer;
 
+    /**
+     * TODO： org.apache.rocketmq.remoting.netty.NettyRemotingServer.NettyConnectManageHandler 连接管理处理器，事件回调
+     * 作用：用于在 通道关闭、通道异常、通道心跳超时 时，销毁 channel 对应 brokerAddress 在 路由表中的信息，以及关闭 channel ！！
+     */
     private BrokerHousekeepingService brokerHousekeepingService;
 
     private ExecutorService remotingExecutor;
@@ -154,7 +158,7 @@ public class NamesrvController {
 
     private void registerProcessor() {
         if (namesrvConfig.isClusterTest()) {
-
+            // 集群测试请求处理器
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                     this.remotingExecutor);
         } else {
