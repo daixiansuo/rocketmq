@@ -88,14 +88,24 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 return this.deleteKVConfig(ctx, request);
             case RequestCode.QUERY_DATA_VERSION:
                 return queryBrokerTopicConfig(ctx, request);
-            case RequestCode.REGISTER_BROKER:
+            case RequestCode.REGISTER_BROKER: // Broker 注册(心跳)
                 Version brokerVersion = MQVersion.value2Version(request.getVersion());
+                // 低版本兼容
                 if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
                     return this.registerBrokerWithFilterServer(ctx, request);
                 } else {
+                    // 注册Broker信息
                     return this.registerBroker(ctx, request);
                 }
             case RequestCode.UNREGISTER_BROKER:
+
+                /**
+                 * RocketMQ有两个触发点来触发路由删除操作。
+                 * 1) NameServer定时扫描brokerLiveTable，检测上次心跳包与当 前系统时间的时间戳，如果时间戳大于120s，则需要移除该Broker信息。
+                 * 2) Broker在正常关闭的情况下，会执行unregisterBroker指令。
+                 */
+
+                // 此处就是第二种
                 return this.unregisterBroker(ctx, request);
             case RequestCode.GET_ROUTEINTO_BY_TOPIC:
                 return this.getRouteInfoByTopic(ctx, request);
@@ -297,6 +307,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             topicConfigWrapper.getDataVersion().setTimestamp(0);
         }
 
+        // 路由信息管理器 注册Broker
         RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),
@@ -308,7 +319,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             ctx.channel()
         );
 
+        // 设置 slave 地址
         responseHeader.setHaServerAddr(result.getHaServerAddr());
+        // 设置 master 地址
         responseHeader.setMasterAddr(result.getMasterAddr());
 
         byte[] jsonValue = this.namesrvController.getKvConfigManager().getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
@@ -324,6 +337,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final UnRegisterBrokerRequestHeader requestHeader =
             (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
 
+        // Broker在正常关闭的情况下，会执行unregisterBroker指令
+        // 此处就是 删除路由表对应记录
         this.namesrvController.getRouteInfoManager().unregisterBroker(
             requestHeader.getClusterName(),
             requestHeader.getBrokerAddr(),

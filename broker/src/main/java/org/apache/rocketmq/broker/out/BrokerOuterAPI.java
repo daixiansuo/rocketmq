@@ -147,6 +147,7 @@ public class BrokerOuterAPI {
                     @Override
                     public void run() {
                         try {
+                            // 发送注册请求（其实就是心跳请求）
                             RegisterBrokerResult result = registerBroker(namesrvAddr,oneway, timeoutMills,requestHeader,body);
                             if (result != null) {
                                 registerBrokerResultList.add(result);

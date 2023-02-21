@@ -95,6 +95,7 @@ public class NamesrvStartup {
                 properties = new Properties();
                 // 加载配置文件
                 properties.load(in);
+                // 将配置文件内容 填充到 NamesrvConfig、NettyServerConfig 配置对象中
                 MixAll.properties2Object(properties, namesrvConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
 
@@ -131,6 +132,7 @@ public class NamesrvStartup {
 
         log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
+        // 填充配置至 namesrvConfig、nettyServerConfig
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
