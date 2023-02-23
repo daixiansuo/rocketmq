@@ -25,10 +25,25 @@ import java.util.Map;
 public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
+    // 主题
     private String topic;
+    // 消息标记（RocketMQ不做处理） @see org.apache.rocketmq.common.sysflag.MessageSysFlag
     private int flag;
+    /**
+     * 扩展属性
+     *
+     * KEYS: 消息索引建，用空格隔开，RocketMQ 可以根据这些 key 快速检索消息。
+     * TAGS: 消息标签，用于消息过滤。
+     * DELAY: 延迟时间级别。
+     * WAIT: 消息发送时是否等消息存储完成后再返回。
+     *
+     * ...
+     * ...
+     */
     private Map<String, String> properties;
+    // 消息体
     private byte[] body;
+    // 事务消息相关的事务编号
     private String transactionId;
 
     public Message() {
