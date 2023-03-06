@@ -85,6 +85,7 @@ public class NamesrvController {
         // 创建 NettyServer
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
+        // rpc 请求处理 默认的业务线程池
         this.remotingExecutor =
                 Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(), new ThreadFactoryImpl("RemotingExecutorThread_"));
 
@@ -162,7 +163,7 @@ public class NamesrvController {
             this.remotingServer.registerDefaultProcessor(new ClusterTestRequestProcessor(this, namesrvConfig.getProductEnvName()),
                     this.remotingExecutor);
         } else {
-            // 默认情况都会使用 DefaultRequestProcessor 处理器进行请求分发
+            // 默认情况都会使用 DefaultRequestProcessor 处理器进行请求分发， 并且 remotingExecutor 为默认的线程池
             this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
         }
     }

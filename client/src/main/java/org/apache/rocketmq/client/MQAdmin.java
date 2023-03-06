@@ -24,6 +24,12 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Base interface for MQ management
+ * <p>
+ * MQ管理的基本接口，其下有三个不同子接口：
+ * <p>
+ * 1. MQAdminExt：这个位于 tools 包下，为 mqadmin 命令的顶级接口，该包就是 mqadmin 命令的功能实现。
+ * 2. MQProducer: 消息生产者
+ * 3. MQConsumer: 消息消费者
  */
 public interface MQAdmin {
     /**

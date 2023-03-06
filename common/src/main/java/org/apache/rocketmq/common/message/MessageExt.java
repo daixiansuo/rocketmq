@@ -21,9 +21,19 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 
+
+/**
+ * ChatGpt - 解读：
+ * <p>
+ * MessageExt 中的 Ext 同样代表的是 Extension，即扩展的意思。
+ * MessageExt 是 Message 的扩展版本，提供了一些额外的消息属性，
+ * 比如 messageId、bornTimestamp、storeTimestamp、queueOffset 等，
+ * 方便用户对消息进行更细粒度的控制和管理。因此，MessageExt 可以看作是 Message 的增强版
+ */
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
 
@@ -33,19 +43,20 @@ public class MessageExt extends Message {
     // 记录消息在Broker存盘大小
     private int storeSize;
 
-    // 记录在ConsumeQueue中的偏移
+    // 当前消息存储在队列中的位置 === 消息位点 ； 由服务端指定并填充，取值范围：0~long.Max。
     private long queueOffset;
 
     // 记录一些系统标志的开关状态，MessageSysFlag中定义了系统标识
     private int sysFlag;
 
-    // 消息创建时间，在Producer发送消息时设置
+    // 消息发送时间，在Producer发送消息时设置。 生产者客户端系统的本地毫秒级时间戳， 客户端系统时钟和服务端系统时钟可能存在偏差，消息发送时间是以客户端系统时钟为准。
     private long bornTimestamp;
 
     // 记录发送该消息的producer地址
     private SocketAddress bornHost;
 
-    // 消息存储时间
+    // 消息存储时间。消息在Apache RocketMQ 服务端完成存储时，服务端系统的本地毫秒级时间戳。 对于定时消息和事务消息，消息保存时间指的是消息生效对消费方可见的服务端系统时间
+    // 客户端系统时钟和服务端系统时钟可能存在偏差，消息保留时间是以服务端系统时钟为准
     private long storeTimestamp;
 
     // 记录存储该消息的Broker地址
@@ -54,7 +65,7 @@ public class MessageExt extends Message {
     // 消息Id
     private String msgId;
 
-    // 记录消息在Broker中存储偏移
+    // 记录消息在Broker中存储偏移  === 消费位点
     private long commitLogOffset;
 
     // 消息内容CRC校验值
@@ -69,7 +80,7 @@ public class MessageExt extends Message {
     }
 
     public MessageExt(int queueId, long bornTimestamp, SocketAddress bornHost, long storeTimestamp,
-        SocketAddress storeHost, String msgId) {
+                      SocketAddress storeHost, String msgId) {
         this.queueId = queueId;
         this.bornTimestamp = bornTimestamp;
         this.bornHost = bornHost;
@@ -201,9 +212,13 @@ public class MessageExt extends Message {
         this.sysFlag = sysFlag;
     }
 
-    public void setStoreHostAddressV6Flag() { this.sysFlag = this.sysFlag | MessageSysFlag.STOREHOSTADDRESS_V6_FLAG; }
+    public void setStoreHostAddressV6Flag() {
+        this.sysFlag = this.sysFlag | MessageSysFlag.STOREHOSTADDRESS_V6_FLAG;
+    }
 
-    public void setBornHostV6Flag() { this.sysFlag = this.sysFlag | MessageSysFlag.BORNHOST_V6_FLAG; }
+    public void setBornHostV6Flag() {
+        this.sysFlag = this.sysFlag | MessageSysFlag.BORNHOST_V6_FLAG;
+    }
 
     public int getBodyCRC() {
         return bodyCRC;
@@ -256,10 +271,10 @@ public class MessageExt extends Message {
     @Override
     public String toString() {
         return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
-            + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
-            + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
-            + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
-            + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
-            + ", toString()=" + super.toString() + "]";
+                + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
+                + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
+                + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="
+                + reconsumeTimes + ", preparedTransactionOffset=" + preparedTransactionOffset
+                + ", toString()=" + super.toString() + "]";
     }
 }
