@@ -37,6 +37,7 @@ public class MQClientManager {
     private AtomicInteger factoryIndexGenerator = new AtomicInteger();
 
     // key: clientId value: MQClientInstance
+    // 整个JVM实例中只存在一个MQClientManager实例，维护一个MQClientInstance缓存表
     private ConcurrentMap<String/* clientId */, MQClientInstance> factoryTable =
             new ConcurrentHashMap<String, MQClientInstance>();
 
@@ -69,6 +70,7 @@ public class MQClientManager {
             instance =
                     new MQClientInstance(clientConfig.cloneClientConfig(),
                             this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
+            // 即同一个clientId只会创建一个MQClientInstance实例
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;
