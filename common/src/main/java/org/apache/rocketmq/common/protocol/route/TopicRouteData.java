@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
+    //  顺序主题配置。在nameserver侧配置是否支持顺序消息，支持 需要在 nameserver kv配置文件中配置 顺序主题配置！！！
     private String orderTopicConf;
     // 队列信息列表
     private List<QueueData> queueDatas;

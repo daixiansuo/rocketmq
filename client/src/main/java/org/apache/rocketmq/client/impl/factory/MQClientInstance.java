@@ -173,7 +173,9 @@ public class MQClientInstance {
         TopicPublishInfo info = new TopicPublishInfo();
         info.setTopicRouteData(route);
 
+        // 顺序主题配置不为空
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
+            // broker列表
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
                 String[] item = broker.split(":");

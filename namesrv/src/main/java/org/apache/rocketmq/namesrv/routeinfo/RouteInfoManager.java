@@ -460,40 +460,61 @@ public class RouteInfoManager {
         }
     }
 
+
+    /**
+     * 根据 topic 获取路由信息。 client --> nameserver
+     *
+     * @param topic 主题
+     * @return TopicRouteData
+     */
     public TopicRouteData pickupTopicRouteData(final String topic) {
+
+        // 路由信息
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
+
+        // brokerName 集合
         Set<String> brokerNameSet = new HashSet<String>();
         List<BrokerData> brokerDataList = new LinkedList<BrokerData>();
         topicRouteData.setBrokerDatas(brokerDataList);
 
+        // 过滤服务器
         HashMap<String, List<String>> filterServerMap = new HashMap<String, List<String>>();
         topicRouteData.setFilterServerTable(filterServerMap);
 
         try {
             try {
                 this.lock.readLock().lockInterruptibly();
+                // 根据 topic 查询路由信息
                 List<QueueData> queueDataList = this.topicQueueTable.get(topic);
                 if (queueDataList != null) {
+                    // 设置 队列列表
                     topicRouteData.setQueueDatas(queueDataList);
                     foundQueueData = true;
 
+                    // 遍历队列，获取队列对应的 brokerName
                     Iterator<QueueData> it = queueDataList.iterator();
                     while (it.hasNext()) {
                         QueueData qd = it.next();
                         brokerNameSet.add(qd.getBrokerName());
                     }
 
+                    // 遍历所有队列 对应的 brokerName 列表
                     for (String brokerName : brokerNameSet) {
+                        // 根据 brokerName 从 broker基础信息中 获取对应 BrokerData
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
+                            // copy 一份数据
                             BrokerData brokerDataClone = new BrokerData(brokerData.getCluster(), brokerData.getBrokerName(), (HashMap<Long, String>) brokerData
                                     .getBrokerAddrs().clone());
                             brokerDataList.add(brokerDataClone);
                             foundBrokerData = true;
+                            // 遍历 brokerName 对应的 broker 所有节点
                             for (final String brokerAddr : brokerDataClone.getBrokerAddrs().values()) {
+                                // 查询过滤服务器
                                 List<String> filterServerList = this.filterServerTable.get(brokerAddr);
+                                // 添加数据
                                 filterServerMap.put(brokerAddr, filterServerList);
                             }
                         }

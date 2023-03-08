@@ -108,6 +108,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 // 此处就是第二种
                 return this.unregisterBroker(ctx, request);
             case RequestCode.GET_ROUTEINTO_BY_TOPIC:
+                // 根据 topic 获取路由信息
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
                 return this.getBrokerClusterInfo(ctx, request);
@@ -356,13 +357,16 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
+        // 获取路由信息
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
-
         if (topicRouteData != null) {
+            // 是否支持顺序消息，默认是不支持
             if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
+                // 如果支持，从nameserver 本地 kv 配置文件中，查询 顺序主题配置！！
                 String orderTopicConf =
                     this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
                         requestHeader.getTopic());
+                // 设置顺序主题配置。
                 topicRouteData.setOrderTopicConf(orderTopicConf);
             }
 
@@ -373,6 +377,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        // 主题不存在
         response.setCode(ResponseCode.TOPIC_NOT_EXIST);
         response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
             + FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
