@@ -28,11 +28,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class TopicRouteData extends RemotingSerializable {
     //  顺序主题配置。在nameserver侧配置是否支持顺序消息，支持 需要在 nameserver kv配置文件中配置 顺序主题配置！！！
     private String orderTopicConf;
-    // 队列信息列表
+    // topic队列元数据
     private List<QueueData> queueDatas;
-    // Broker信息列表
+    // topic分布的broker元数据
     private List<BrokerData> brokerDatas;
-    // 过滤服务
+    // broker上过滤服务器的地址列表
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     /**

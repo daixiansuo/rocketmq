@@ -117,9 +117,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final ExecutorService defaultAsyncSenderExecutor;
     private final Timer timer = new Timer("RequestHouseKeepingService", true);
 
-    // 检查请求线程池队列
+    // 检查请求线程池队列 （事物）
     protected BlockingQueue<Runnable> checkRequestQueue;
-    // 检查请求线程池
+    // 检查请求线程池（事物）
     protected ExecutorService checkExecutor;
 
     // 服务状态
@@ -220,6 +220,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             null);
                 }
 
+                // 设置系统默认主题：TBW102 的路由发布信息
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
 
                 // 启动MQClientInstance，如果MQClientInstance已经启动，则本次启动不会真正执行
@@ -229,6 +230,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
                         this.defaultMQProducer.isSendMessageWithVIPChannel());
+                // 更新服务状态
                 this.serviceState = ServiceState.RUNNING;
                 break;
             case RUNNING:
@@ -603,17 +605,23 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long endTimestamp = beginTimestampFirst;
         // 根据 topic 获取 路由信息
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
-        // 不为空 且 队列不为空
+        // 发布信息不为空 且 队列不为空
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
+
             boolean callTimeout = false;
             MessageQueue mq = null;
             Exception exception = null;
             SendResult sendResult = null;
+            // 失败重试次数： 同步发送 = 1 + RetryTimesWhenSendFailed  异步发送 = 1
             int timesTotal = communicationMode == CommunicationMode.SYNC ? 1 + this.defaultMQProducer.getRetryTimesWhenSendFailed() : 1;
             int times = 0;
             String[] brokersSent = new String[timesTotal];
+
+            // 最少一次发送，最坏 timeTotal 次数
             for (; times < timesTotal; times++) {
+                // 上一次选择的执行发送消息失败的Broker
                 String lastBrokerName = null == mq ? null : mq.getBrokerName();
+                // 选择消息队列！！
                 MessageQueue mqSelected = this.selectOneMessageQueue(topicPublishInfo, lastBrokerName);
                 if (mqSelected != null) {
                     mq = mqSelected;
@@ -630,8 +638,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             break;
                         }
 
+                        // 发送消息核心流程
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, timeout - costTime);
                         endTimestamp = System.currentTimeMillis();
+
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         switch (communicationMode) {
                             case ASYNC:

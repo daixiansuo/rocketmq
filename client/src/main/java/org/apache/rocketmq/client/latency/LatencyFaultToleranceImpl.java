@@ -25,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
+
+    // key: brokerName  value: 对应失败条目信息
     private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
@@ -72,10 +74,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         if (!tmpList.isEmpty()) {
+            // 随机打乱
             Collections.shuffle(tmpList);
-
+            // 排序
             Collections.sort(tmpList);
-
+            // 一半长度
             final int half = tmpList.size() / 2;
             if (half <= 0) {
                 return tmpList.get(0).getName();
@@ -96,9 +99,16 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             '}';
     }
 
+    /**
+     * 失败条目（规避规则条目）
+     */
     class FaultItem implements Comparable<FaultItem> {
+
+        // 条目唯一键， 这里是 brokerName
         private final String name;
+        // 本次消息发送的延迟时间
         private volatile long currentLatency;
+        // 故障规避的开始时间
         private volatile long startTimestamp;
 
         public FaultItem(final String name) {

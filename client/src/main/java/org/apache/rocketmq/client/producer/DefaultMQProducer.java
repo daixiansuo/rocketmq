@@ -313,6 +313,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * 从 nameserver 拉取 topic 对应的路由信息，然后获取对应的队列信息。
+     * <p>
      * Fetch message queues of topic <code>topic</code>, to which we may send/publish messages.
      *
      * @param topic Topic to fetch.

@@ -88,21 +88,49 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class MQClientInstance {
     private final static long LOCK_TIMEOUT_MILLIS = 3000;
     private final InternalLogger log = ClientLogger.getLog();
+
+    // 客户端配置
     private final ClientConfig clientConfig;
+    // 实例索引
     private final int instanceIndex;
+    // 客户端ID = ClientIP + @ + InstanceName + [ @ + unitName]
     private final String clientId;
+    // 启动时间
     private final long bootTimestamp = System.currentTimeMillis();
+
+    // 生产者实例
     private final ConcurrentMap<String/* group */, MQProducerInner> producerTable = new ConcurrentHashMap<String, MQProducerInner>();
+    // 消费者实例
     private final ConcurrentMap<String/* group */, MQConsumerInner> consumerTable = new ConcurrentHashMap<String, MQConsumerInner>();
+    // 管理扩展实例
     private final ConcurrentMap<String/* group */, MQAdminExtInner> adminExtTable = new ConcurrentHashMap<String, MQAdminExtInner>();
+
+    // 客户端网络配置
     private final NettyClientConfig nettyClientConfig;
+
+    // 发送Netty网络请求实现客户端
     private final MQClientAPIImpl mQClientAPIImpl;
+
     private final MQAdminImpl mQAdminImpl;
+
+    /**
+     * 本地缓存 - 主题路由信息
+     */
     private final ConcurrentMap<String/* Topic */, TopicRouteData> topicRouteTable = new ConcurrentHashMap<String, TopicRouteData>();
+
+    // nameserver lock
     private final Lock lockNamesrv = new ReentrantLock();
+    // heartbeat lock
     private final Lock lockHeartbeat = new ReentrantLock();
+
+    /**
+     * 本地缓存 - broker地址信息 - 从nameserver更新
+     */
     private final ConcurrentMap<String/* Broker Name */, HashMap<Long/* brokerId */, String/* address */>> brokerAddrTable =
             new ConcurrentHashMap<String, HashMap<Long, String>>();
+    /**
+     * b
+     */
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable =
             new ConcurrentHashMap<String, HashMap<String, Integer>>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
@@ -176,22 +204,44 @@ public class MQClientInstance {
         // 顺序主题配置不为空
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             // broker列表
+            /**
+             * 在 kvConfig.json 中，关于顺序消息或主题的配置主要是通过配置 orderMessageEnable 和 orderTopicEnable 两个参数来实现的。
+             *
+             * 其中，orderMessageEnable 参数用于控制 Broker 是否支持顺序消息，默认值为 false，即不支持顺序消息。如果需要支持顺序消息，需要将其设置为 true。
+             *
+             * 而 orderTopicEnable 参数则用于控制 Broker 是否支持顺序主题，默认值也是 false，即不支持顺序主题。如果需要支持顺序主题，需要将其设置为 true。当 orderTopicEnable 参数被设置为 true 时，会在 kvConfig.json 中新增一个名为 orderTopicConf 的配置项，用于配置顺序主题的路由信息。
+             *
+             * orderTopicConf 的值是一个字符串，格式为 brokerName1:queueNums1;brokerName2:queueNums2;...，其中 brokerName 表示 Broker 的名称，queueNums 表示该 Broker 为该顺序主题配置的消息队列数量。
+             *
+             * 例如，如果要为顺序主题 OrderTopic 配置两个消息队列，一个在 broker1 上，一个在 broker2 上，则需要在 kvConfig.json 中添加如下配置：
+             *
+             * "orderTopicEnable": true,
+             * "orderTopicConf": "broker1:1;broker2:1"
+             * 注意，对于顺序主题，消息发送者在发送消息时需要指定消息发送到的队列编号，以保证消息的顺序性。另外，消费者在消费顺序主题时需要使用顺序消费模式，即 MessageListenerOrderly，以保证消息的顺序消费。
+             */
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
                 String[] item = broker.split(":");
                 int nums = Integer.parseInt(item[1]);
                 for (int i = 0; i < nums; i++) {
+                    // 组装队列信息: topic、broker、queueId
                     MessageQueue mq = new MessageQueue(topic, item[0], i);
                     info.getMessageQueueList().add(mq);
                 }
             }
 
+            // 设置标识 为顺序主题
             info.setOrderTopic(true);
         } else {
+
+            // 队列列表、排序后遍历
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
             for (QueueData qd : qds) {
+                // 判断是否有 写权限
                 if (PermName.isWriteable(qd.getPerm())) {
+
+                    // 1. 查询与 当前队列 对应brokerName 相同的 BrokerData信息。
                     BrokerData brokerData = null;
                     for (BrokerData bd : route.getBrokerDatas()) {
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
@@ -200,32 +250,50 @@ public class MQClientInstance {
                         }
                     }
 
+                    // 2. 为空，跳过
                     if (null == brokerData) {
                         continue;
                     }
 
+                    // 3. 匹配到的BrokerData信息中 不包含 master 节点，跳过
                     if (!brokerData.getBrokerAddrs().containsKey(MixAll.MASTER_ID)) {
                         continue;
                     }
 
+                    // 上面三个步骤都是为了检测 队列是否合法！！！
+
+                    // 遍历当前队列的 写队列数量
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
+                        // 组装队列信息
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMessageQueueList().add(mq);
                     }
                 }
             }
 
+            // 设置标识 不是顺序主题
             info.setOrderTopic(false);
         }
 
         return info;
     }
 
+
+    /**
+     * Topic路由信息 转 订阅信息
+     *
+     * @param topic 主题
+     * @param route 路由信息
+     * @return Set<MessageQueue>
+     */
     public static Set<MessageQueue> topicRouteData2TopicSubscribeInfo(final String topic, final TopicRouteData route) {
         Set<MessageQueue> mqList = new HashSet<MessageQueue>();
+        // 遍历队列数据
         List<QueueData> qds = route.getQueueDatas();
         for (QueueData qd : qds) {
+            // 只处理具有 读权限的队列
             if (PermName.isReadable(qd.getPerm())) {
+                // 遍历读队列数量
                 for (int i = 0; i < qd.getReadQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                     mqList.add(mq);
@@ -716,11 +784,15 @@ public class MQClientInstance {
                             // Update Pub info
                             // 更新发布信息
                             {
+                                // 路由信息 转 发布信息
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
+                                // 标识具有路由信息
                                 publishInfo.setHaveTopicRouterInfo(true);
+                                // 遍历生产者列表
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQProducerInner> entry = it.next();
+                                    // 更新具体生产者的 主题发布信息
                                     MQProducerInner impl = entry.getValue();
                                     if (impl != null) {
                                         impl.updateTopicPublishInfo(topic, publishInfo);
@@ -731,10 +803,13 @@ public class MQClientInstance {
                             // Update sub info
                             // 更新订阅信息
                             {
+                                // 路由信息 转 订阅信息
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
+                                // 遍历消费者
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQConsumerInner> entry = it.next();
+                                    // 更新订阅信息
                                     MQConsumerInner impl = entry.getValue();
                                     if (impl != null) {
                                         impl.updateTopicSubscribeInfo(topic, subscribeInfo);
