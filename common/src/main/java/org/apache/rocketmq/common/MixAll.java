@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -123,11 +124,20 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
+
+    /**
+     * broker vip 通道
+     *
+     * @param isChange   是否开启vip通道发送
+     * @param brokerAddr broker地址
+     * @return String
+     */
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
             int split = brokerAddr.lastIndexOf(":");
             String ip = brokerAddr.substring(0, split);
             String port = brokerAddr.substring(split + 1);
+            // 原来的 port - 2 = newPort
             String brokerAddrNew = ip + ":" + (Integer.parseInt(port) - 2);
             return brokerAddrNew;
         } else {
@@ -242,7 +252,7 @@ public class MixAll {
     }
 
     public static void printObjectProperties(final InternalLogger logger, final Object object,
-        final boolean onlyImportantField) {
+                                             final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
             if (!Modifier.isStatic(field.getModifiers())) {

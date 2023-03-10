@@ -21,15 +21,29 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+
+/**
+ * 检查禁止钩子上下文对象
+ */
 public class CheckForbiddenContext {
+
+    // nameserver
     private String nameSrvAddr;
+    // 生产者分组
     private String group;
+    // 消息
     private Message message;
+    // 队列
     private MessageQueue mq;
+    // broker地址
     private String brokerAddr;
+    // 通信方式 同步、异步、单向
     private CommunicationMode communicationMode;
+    // 发送结果
     private SendResult sendResult;
+    // 异常
     private Exception exception;
+
     private Object arg;
     private boolean unitMode = false;
 

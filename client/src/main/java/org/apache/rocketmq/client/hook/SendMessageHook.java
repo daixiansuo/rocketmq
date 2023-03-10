@@ -16,10 +16,29 @@
  */
 package org.apache.rocketmq.client.hook;
 
+
+/**
+ * 消息发送钩子函数
+ * <p>
+ * 可以在消息发送前、发送后以及发送异常时执行一些自定义逻辑，例如日志记录、消息统计等。
+ */
 public interface SendMessageHook {
+
+    // 钩子名称
     String hookName();
 
+
+    /**
+     * 消息发送前执行
+     *
+     * @param context 上下文对象
+     */
     void sendMessageBefore(final SendMessageContext context);
 
+    /**
+     * 消息发送后执行
+     *
+     * @param context 上下文对象
+     */
     void sendMessageAfter(final SendMessageContext context);
 }

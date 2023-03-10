@@ -175,6 +175,7 @@ public class MQClientInstance {
 
         this.rebalanceService = new RebalanceService(this);
 
+        // 这个 producer 为内部的producer
         this.defaultMQProducer = new DefaultMQProducer(MixAll.CLIENT_INNER_PRODUCER_GROUP);
         this.defaultMQProducer.resetClientConfig(clientConfig);
 
@@ -325,6 +326,7 @@ public class MQClientInstance {
                     // Start rebalance service
                     this.rebalanceService.start();
                     // Start push service
+                    // 启动自己持有的 内部producer
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;

@@ -121,7 +121,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
-     * 消息重试时选择另外一 个Broker，是否不等待存储结果就返回，默认为false
+     * 消息重试时选择另外一个Broker，是否不等待存储结果就返回，默认为false
      * Indicate whether to retry another broker on sending failure internally.
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
@@ -944,8 +944,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Sets an Executor to be used for executing callback methods. If the Executor is not set, {@link
-     * NettyRemotingClient#publicExecutor} will be used.
+     * 设置用于执行回调方法的执行程序。如果未设置执行器，将使用 NettyRemotingClient#publicExecutor
      *
      * @param callbackExecutor the instance of Executor
      */
@@ -954,8 +953,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Sets an Executor to be used for executing asynchronous send. If the Executor is not set, {@link
-     * DefaultMQProducerImpl#defaultAsyncSenderExecutor} will be used.
+     * 设置用于执行异步发送的执行程序。如果未设置执行器，将使用 DefaultMQProducerImpl#defaultAsyncSenderExecutor
      *
      * @param asyncSenderExecutor the instance of Executor
      */

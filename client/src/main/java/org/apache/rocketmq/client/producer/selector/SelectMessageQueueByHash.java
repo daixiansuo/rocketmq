@@ -21,15 +21,21 @@ import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 参数哈希取模
+ */
 public class SelectMessageQueueByHash implements MessageQueueSelector {
 
     @Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+        // 参数哈希值
         int value = arg.hashCode();
         if (value < 0) {
+            // 绝对值
             value = Math.abs(value);
         }
 
+        // 对队列长度取模
         value = value % mqs.size();
         return mqs.get(value);
     }

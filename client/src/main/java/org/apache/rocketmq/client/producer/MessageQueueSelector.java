@@ -17,9 +17,29 @@
 package org.apache.rocketmq.client.producer;
 
 import java.util.List;
+
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
+/**
+ * 消息队列选择器
+ * <p>
+ * 用于在消息发送时选择要发送到哪个消息队列
+ *
+ * 默认有三个实现：
+ * byHash 哈希
+ * byRandom 随机
+ * byMachineRom -- > 这个没实现
+ */
 public interface MessageQueueSelector {
+
+    /**
+     * 选择消息队列
+     *
+     * @param mqs 队列列表
+     * @param msg 消息
+     * @param arg 附近参数
+     * @return MessageQueue
+     */
     MessageQueue select(final List<MessageQueue> mqs, final Message msg, final Object arg);
 }

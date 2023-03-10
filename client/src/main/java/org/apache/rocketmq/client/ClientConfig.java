@@ -99,7 +99,7 @@ public class ClientConfig {
     private boolean unitMode = false;
     // 单位名称
     private String unitName;
-    // 是否启用vip netty通道以发送消息。 从-D com.rocketmq.sendMessageWithVIPChannel参数的值，若无则是true
+    // 是否启用vip netty通道以发送消息。 从-Dcom.rocketmq.sendMessageWithVIPChannel参数的值
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "false"));
     // 是否使用安全传输。
     private boolean useTLS = TlsSystemConfig.tlsEnable;

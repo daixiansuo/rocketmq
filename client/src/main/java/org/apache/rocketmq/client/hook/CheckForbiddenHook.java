@@ -19,8 +19,24 @@ package org.apache.rocketmq.client.hook;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 
+
+/**
+ * CheckForbiddenHook 是 RocketMQ 提供的一个钩子（Hook），在消息发送时可以通过这个钩子来检查消息是否被禁止发送。
+ * 如果消息被禁止发送，则可以通过钩子的方式在消息发送前进行拦截并做出相应的处理，例如记录日志、抛出异常等。
+ */
 public interface CheckForbiddenHook {
+
+    /**
+     * 钩子名称
+     * @return String
+     */
     String hookName();
 
+    /**
+     * 具体检查
+     *
+     * @param context 检查上下文
+     * @throws MQClientException 禁止发送则抛出异常
+     */
     void checkForbidden(final CheckForbiddenContext context) throws MQClientException;
 }

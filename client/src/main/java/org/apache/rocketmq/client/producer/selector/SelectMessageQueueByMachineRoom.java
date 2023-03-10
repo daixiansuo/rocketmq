@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SelectMessageQueueByMachineRoom implements MessageQueueSelector {
+
     private Set<String> consumeridcs;
 
     @Override
