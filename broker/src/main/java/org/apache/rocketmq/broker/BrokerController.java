@@ -108,14 +108,23 @@ import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class BrokerController {
+
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final InternalLogger LOG_PROTECTION = InternalLoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
     private static final InternalLogger LOG_WATER_MARK = InternalLoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
+
+    // Broker配置
     private final BrokerConfig brokerConfig;
+    // Netty服务端配置
     private final NettyServerConfig nettyServerConfig;
+    // Netty客户端配置
     private final NettyClientConfig nettyClientConfig;
+    // 消息存储配置
     private final MessageStoreConfig messageStoreConfig;
+
+    // 消费进度（consumer offset）管理器
     private final ConsumerOffsetManager consumerOffsetManager;
+
     private final ConsumerManager consumerManager;
     private final ConsumerFilterManager consumerFilterManager;
     private final ProducerManager producerManager;
@@ -174,10 +183,17 @@ public class BrokerController {
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
+
+        // 配置文件
         this.brokerConfig = brokerConfig;
+        // Netty服务端
         this.nettyServerConfig = nettyServerConfig;
+        // Netty客户端
         this.nettyClientConfig = nettyClientConfig;
+        // 消息存储配置
         this.messageStoreConfig = messageStoreConfig;
+
+
         this.consumerOffsetManager = new ConsumerOffsetManager(this);
         this.topicConfigManager = new TopicConfigManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);

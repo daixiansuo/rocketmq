@@ -18,7 +18,7 @@ package org.apache.rocketmq.remoting.netty;
 
 public class NettyServerConfig implements Cloneable {
 
-    // NameServer监听端口，该值默认会被初始化为 9876
+    // NameServer监听端口，该值在 nameserver 侧默认会被初始化为 9876； 在 broker 侧默认初始化为 10911
     private int listenPort = 8888;
     // Netty业务线程池线程个数
     private int serverWorkerThreads = 8;
