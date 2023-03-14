@@ -19,14 +19,17 @@ package org.apache.rocketmq.broker.client;
 public enum ConsumerGroupEvent {
 
     /**
+     * 消费者组变更事件，如消费者组内某个客户端断开连接等
      * Some consumers in the group are changed.
      */
     CHANGE,
     /**
+     * 消费者组注销事件
      * The group of consumer is unregistered.
      */
     UNREGISTER,
     /**
+     * 消费者组注册事件
      * The group of consumer is registered.
      */
     REGISTER

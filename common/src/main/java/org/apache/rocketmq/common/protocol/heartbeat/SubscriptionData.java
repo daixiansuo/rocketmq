@@ -26,16 +26,32 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * 订阅数据
+ */
 public class SubscriptionData implements Comparable<SubscriptionData> {
+
+    // 表示所有订阅（全局）
     public final static String SUB_ALL = "*";
+    // 标识此订阅是否启用类过滤器模式。
     private boolean classFilterMode = false;
+    // 订阅的主题名称
     private String topic;
+
+    // 订阅表达式
     private String subString;
+
+    // 标签集合，订阅消息的标签可以是其中之一。如果为空，则表示订阅所有标签。
     private Set<String> tagsSet = new HashSet<String>();
+    // 主题的队列编号集合，表示只订阅这些队列。如果为空，则表示订阅主题下所有队列。
     private Set<Integer> codeSet = new HashSet<Integer>();
+
+    // 订阅版本号，用于区分不同的订阅。
     private long subVersion = System.currentTimeMillis();
+    // 订阅表达式类型，默认为标签。
     private String expressionType = ExpressionType.TAG;
 
+    // 用于存储类过滤器的源码，以便在重试时重新编译过滤器。
     @JSONField(serialize = false)
     private String filterClassSource;
 
@@ -170,8 +186,8 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
     @Override
     public String toString() {
         return "SubscriptionData [classFilterMode=" + classFilterMode + ", topic=" + topic + ", subString="
-            + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion
-            + ", expressionType=" + expressionType + "]";
+                + subString + ", tagsSet=" + tagsSet + ", codeSet=" + codeSet + ", subVersion=" + subVersion
+                + ", expressionType=" + expressionType + "]";
     }
 
     @Override

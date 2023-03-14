@@ -16,7 +16,19 @@
  */
 package org.apache.rocketmq.broker.client;
 
+
+/**
+ * 消费者ID变更监听器
+ * 接口定义了消费者 ID 变化事件的监听器接口，主要用于通知消费者 ID 变化的事件。
+ */
 public interface ConsumerIdsChangeListener {
 
+    /**
+     * 通知处理
+     *
+     * @param event 事件
+     * @param group 消费者分组
+     * @param args
+     */
     void handle(ConsumerGroupEvent event, String group, Object... args);
 }

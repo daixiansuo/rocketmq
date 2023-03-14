@@ -124,17 +124,20 @@ public class BrokerController {
 
     // 消费进度（consumer offset）管理器
     private final ConsumerOffsetManager consumerOffsetManager;
-
+    // 消费者管理器
     private final ConsumerManager consumerManager;
+
+    private final ConsumerIdsChangeListener consumerIdsChangeListener;
     private final ConsumerFilterManager consumerFilterManager;
     private final ProducerManager producerManager;
     private final ClientHousekeepingService clientHousekeepingService;
+
+
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
     private final Broker2Client broker2Client;
     private final SubscriptionGroupManager subscriptionGroupManager;
-    private final ConsumerIdsChangeListener consumerIdsChangeListener;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     private final BrokerOuterAPI brokerOuterAPI;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
