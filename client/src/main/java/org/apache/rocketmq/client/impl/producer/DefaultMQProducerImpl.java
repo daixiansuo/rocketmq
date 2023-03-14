@@ -481,7 +481,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         // 检查主题合法性
         Validators.checkTopic(newTopic);
 
-        //
+        // 调用创建主题
         this.mQClientFactory.getMQAdminImpl().createTopic(key, newTopic, queueNum, topicSysFlag);
     }
 

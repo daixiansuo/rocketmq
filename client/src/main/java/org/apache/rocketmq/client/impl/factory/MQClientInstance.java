@@ -111,6 +111,7 @@ public class MQClientInstance {
     // 发送Netty网络请求实现客户端
     private final MQClientAPIImpl mQClientAPIImpl;
 
+    // MQAdmin 接口默认实现
     private final MQAdminImpl mQAdminImpl;
 
     /**
