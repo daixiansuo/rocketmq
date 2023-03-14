@@ -126,9 +126,11 @@ public class BrokerController {
     private final ConsumerOffsetManager consumerOffsetManager;
     // 消费者管理器
     private final ConsumerManager consumerManager;
-
+    // 消费者ID变更监听器
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
+    // 消费者过滤器管理器
     private final ConsumerFilterManager consumerFilterManager;
+    // 生产者管理器
     private final ProducerManager producerManager;
     private final ClientHousekeepingService clientHousekeepingService;
 

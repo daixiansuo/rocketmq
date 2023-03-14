@@ -31,14 +31,23 @@ import java.util.Collections;
  */
 public class ConsumerFilterData {
 
+    // 消费者分组
     private String consumerGroup;
+    // 主题名称
     private String topic;
+    // 过滤表达式
     private String expression;
+    // 表达式类型，支持 SQL92、TAG 和 ANY。
     private String expressionType;
+    // 编译后的表达式对象
     private transient Expression compiledExpression;
+    // 创建时间
     private long bornTime;
+    // 到期时间
     private long deadTime = 0;
+    // 布隆过滤器数据，用于快速检查消息是否匹配当前过滤器。
     private BloomFilterData bloomFilterData;
+    // 客户端版本号
     private long clientVersion;
 
     public boolean isDead() {
