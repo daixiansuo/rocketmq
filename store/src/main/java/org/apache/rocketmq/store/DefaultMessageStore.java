@@ -64,51 +64,78 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 public class DefaultMessageStore implements MessageStore {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    // 消息存储配置
     private final MessageStoreConfig messageStoreConfig;
-    // CommitLog
+
+    // CommitLog 文件的存储实现类
     private final CommitLog commitLog;
 
+    // 消息队列存储缓存表，按消息主题分组
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
+    // ConsumeQueue 文件刷盘线程，将内存中的 ConsumeQueue 数据刷写到磁盘
     private final FlushConsumeQueueService flushConsumeQueueService;
 
+    // 清除 CommitLog 文件服务
     private final CleanCommitLogService cleanCommitLogService;
 
+    // 清除 ConsumerQueue 文件服务
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
+    // Index 文件实现类
     private final IndexService indexService;
 
+    // MappedFile 分配服务 （内存映射技术）
     private final AllocateMappedFileService allocateMappedFileService;
 
+    // CommitLog 消息分发，根据 CommitLog 文件构建 ConsumeQueue、Index文件。
     private final ReputMessageService reputMessageService;
 
+    // 存储高可用机制
     private final HAService haService;
 
+    // 定时消息服务，用于存储定时消息。
     private final ScheduleMessageService scheduleMessageService;
 
+    // 存储统计服务，用于统计存储信息，例如消息存储量、消费量等。
     private final StoreStatsService storeStatsService;
 
+    // 瞬时存储池，用于存储未刷盘的消息数据，提高消息发送效率。
     private final TransientStorePool transientStorePool;
 
+    // 运行标志，用于标记是否正在运行
     private final RunningFlags runningFlags = new RunningFlags();
+    // 系统时钟，用于获取当前睡觉
     private final SystemClock systemClock = new SystemClock();
 
     private final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
+
+    // Broker 统计信息管理器，用于记录 Broker 的运行状态信息。
     private final BrokerStatsManager brokerStatsManager;
+
+    // 消息到达监听器，在消息拉取长轮询模式下，当消息到达时会回调该监听器。
     private final MessageArrivingListener messageArrivingListener;
+
+    // Broker 配置属性
     private final BrokerConfig brokerConfig;
 
+    // 是否已经关闭。
     private volatile boolean shutdown = true;
 
+    // 文件刷盘检测点，用于记录存储文件刷盘的位置。
     private StoreCheckpoint storeCheckpoint;
 
+    // 打印次数，用于统计存储信息。
     private AtomicLong printTimes = new AtomicLong(0);
 
+    // CommitLog 文件转发请求队列，用于处理消息分发请求。
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
+    // 存储锁文件。
     private RandomAccessFile lockFile;
 
+    // 存储锁，用于保证同一时间只有一个进程在运行。
     private FileLock lock;
 
     boolean shutDownNormal = false;
