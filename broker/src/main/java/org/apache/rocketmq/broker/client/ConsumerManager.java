@@ -218,7 +218,7 @@ public class ConsumerManager {
         if (null != consumerGroupInfo) {
             // 注销客户端通道信息，是在消费者主动断开连接时被调用
             consumerGroupInfo.unregisterChannel(clientChannelInfo);
-            // 注册后，如果客户端通道集合为空，则删除对应的 消费者分组信息
+            // 注销后，如果客户端通道集合为空，则删除对应的 消费者分组信息
             if (consumerGroupInfo.getChannelInfoTable().isEmpty()) {
                 // 删除消费者分组信息
                 ConsumerGroupInfo remove = this.consumerTable.remove(group);
