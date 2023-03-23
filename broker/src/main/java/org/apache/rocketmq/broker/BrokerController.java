@@ -143,14 +143,18 @@ public class BrokerController {
     // 封装 broker 向 client（消费者、生产者） 发送请求处理。
     private final Broker2Client broker2Client;
 
+    // 订阅组管理器
+    private final SubscriptionGroupManager subscriptionGroupManager;
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
-    private final SubscriptionGroupManager subscriptionGroupManager;
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
             "BrokerControllerScheduledThread"));
+
+    // 主要作用是在主从同步中，从服务器（slave）向主服务器（master）同步消息、消费进度、Topic配置、订阅组配置等信息。
     private final SlaveSynchronize slaveSynchronize;
+
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
     private final BlockingQueue<Runnable> replyThreadPoolQueue;
