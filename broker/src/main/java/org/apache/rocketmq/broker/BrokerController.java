@@ -143,8 +143,11 @@ public class BrokerController {
     // 封装 broker 向 client（消费者、生产者） 发送请求处理。
     private final Broker2Client broker2Client;
 
+    // 主题配置管理器
+    private TopicConfigManager topicConfigManager;
     // 订阅组管理器
     private final SubscriptionGroupManager subscriptionGroupManager;
+
     private final PullMessageProcessor pullMessageProcessor;
     private final PullRequestHoldService pullRequestHoldService;
     private final MessageArrivingListener messageArrivingListener;
@@ -170,7 +173,6 @@ public class BrokerController {
     private MessageStore messageStore;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
-    private TopicConfigManager topicConfigManager;
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
     private ExecutorService replyMessageExecutor;

@@ -19,15 +19,28 @@ package org.apache.rocketmq.common;
 import org.apache.rocketmq.common.constant.PermName;
 
 public class TopicConfig {
+
+    // 分隔符，在编码、解码时使用
     private static final String SEPARATOR = " ";
+    // 表示该topic默认的读队列数量
     public static int defaultReadQueueNums = 16;
+    // 表示该topic默认的写队列数量
     public static int defaultWriteQueueNums = 16;
+    // 当前Topic的名字
     private String topicName;
+
+    // 当前Topic的读队列数量。
     private int readQueueNums = defaultReadQueueNums;
+    // 当前Topic的写队列数量。
     private int writeQueueNums = defaultWriteQueueNums;
+    // 当前Topic的权限位，表示对该Topic的操作权限。由PermName.PERM_READ和PermName.PERM_WRITE两部分权限组成，分别代表读、写权限。
     private int perm = PermName.PERM_READ | PermName.PERM_WRITE;
+    // 当前Topic的订阅策略类型，表示该Topic的订阅关系是单标签（SINGLE_TAG）还是多标签（MULTI_TAG）
     private TopicFilterType topicFilterType = TopicFilterType.SINGLE_TAG;
+
+    // 当前Topic的系统标志，代表该Topic的特殊属性，如是否是顺序消息，是否允许重复发送等。
     private int topicSysFlag = 0;
+    // 当前Topic是否为顺序消息。
     private boolean order = false;
 
     public TopicConfig() {
