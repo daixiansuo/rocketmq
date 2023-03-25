@@ -19,13 +19,31 @@ package org.apache.rocketmq.store;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.message.MessageExt;
 
+
+/**
+ * 消息扩展模型 适用于Broker内部。
+ */
 public class MessageExtBrokerInner extends MessageExt {
+
     private static final long serialVersionUID = 7256001576878700634L;
+
+    // 属性字段
     private String propertiesString;
+    // 消息标签的 hashCode
     private long tagsCode;
 
+
+    /**
+     * 用来将 tags 字符串转换为 tagsCode 的
+     *
+     * @param filter 主题过滤的类型
+     * @param tags   标签列表字符串
+     * @return long
+     */
     public static long tagsString2tagsCode(final TopicFilterType filter, final String tags) {
-        if (null == tags || tags.length() == 0) { return 0; }
+        if (null == tags || tags.length() == 0) {
+            return 0;
+        }
 
         return tags.hashCode();
     }
