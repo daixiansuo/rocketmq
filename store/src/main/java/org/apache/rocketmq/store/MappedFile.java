@@ -75,20 +75,10 @@ public class MappedFile extends ReferenceResource {
     // 将该指针之前的数据持久化存储到磁盘中。（已刷盘的数据位置）
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
 
-    // 文件大小
+    // 文件大小 commitLog、ConsumeQueue、Index 文件大小
     protected int fileSize;
     // 文件通道
     protected FileChannel fileChannel;
-
-    /**
-     * 当写入数据超过页面大小时，写入该缓冲区。
-     * <p>
-     * 堆外内存ByteBuffer，如果不为空，数据首先将存储在该Buffer中，然后提交到MappedFile创建的FileChannel中。
-     * transientStorePoolEnable为true时不为空。
-     * <p>
-     * Message will put to here first, and then reput to FileChannel if writeBuffer is not null.
-     */
-    protected ByteBuffer writeBuffer = null;
 
     // 短暂存储池，用于提高数据写入性能。
     protected TransientStorePool transientStorePool = null;
@@ -100,7 +90,22 @@ public class MappedFile extends ReferenceResource {
     private long fileFromOffset;
     // 文件对象。
     private File file;
-    // 内存映射的ByteBuffer。（物理文件对应的内存映射Buffer）
+
+    /**
+     * 当写入数据超过页面大小时，写入该缓冲区。
+     * <p>
+     * 堆外内存ByteBuffer，如果不为空，数据首先将存储在该Buffer中，然后提交到MappedFile创建的FileChannel中。
+     * transientStorePoolEnable为true时不为空。
+     * <p>
+     */
+    protected ByteBuffer writeBuffer = null;
+
+    /**
+     * 内存映射的ByteBuffer。（物理文件对应的内存映射Buffer）
+     * <p>
+     * TODO: 因为在整个写入期间都未曾改变 MappedByteBuffer 的指针，所以 mappedByteBuffer.slice()方法返回的共享缓存区空间为整个MappedFile。
+     * TODO: mappedByteBuffer 的指针由 MappedFile 内部 wrotePosition、flushedPosition 变量来维护，每次 append 消息，设置的 position 就是 wrotePosition ！！！
+     */
     private MappedByteBuffer mappedByteBuffer;
 
     // 最后一次更新MappedFile时间戳
@@ -325,6 +330,7 @@ public class MappedFile extends ReferenceResource {
             if (messageExt instanceof MessageExtBrokerInner) {
 
                 // 核心处理：单个消息追加 ！！
+                // TODO：this.fileSize - currentPos = 可写入的字节数
                 result = cb.doAppend(this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos, (MessageExtBrokerInner) messageExt);
             } else if (messageExt instanceof MessageExtBatch) {
 
@@ -353,6 +359,7 @@ public class MappedFile extends ReferenceResource {
     public boolean appendMessage(final byte[] data) {
         int currentPos = this.wrotePosition.get();
 
+        // 判断当前是否还有空闲空间
         if ((currentPos + data.length) <= this.fileSize) {
             try {
                 this.fileChannel.position(currentPos);
@@ -360,6 +367,7 @@ public class MappedFile extends ReferenceResource {
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
+            // 更新写入位置
             this.wrotePosition.addAndGet(data.length);
             return true;
         }
@@ -376,6 +384,7 @@ public class MappedFile extends ReferenceResource {
     public boolean appendMessage(final byte[] data, final int offset, final int length) {
         int currentPos = this.wrotePosition.get();
 
+        // 判断当前是否还有空闲空间
         if ((currentPos + length) <= this.fileSize) {
             try {
                 this.fileChannel.position(currentPos);
@@ -383,6 +392,7 @@ public class MappedFile extends ReferenceResource {
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
             }
+            // 更新写入位置
             this.wrotePosition.addAndGet(length);
             return true;
         }
@@ -391,15 +401,22 @@ public class MappedFile extends ReferenceResource {
     }
 
     /**
-     * @return The current flushed position
+     * 刷盘指的是将内存中的数据写入磁盘，永久存储在磁盘中
+     *
+     * @param flushLeastPages 最少刷盘页数
+     * @return int
      */
     public int flush(final int flushLeastPages) {
+
+        // 判断是否可以执行 flush 操作
         if (this.isAbleToFlush(flushLeastPages)) {
             if (this.hold()) {
+                // 最大有效数据的位置
                 int value = getReadPosition();
 
+                // 直接调用mappedByteBuffer或fileChannel的force()方法将数据写入磁盘，将内存中的数据持久化到磁盘中
                 try {
-                    //We only append data to fileChannel or mappedByteBuffer, never both.
+                    // We only append data to fileChannel or mappedByteBuffer, never both.
                     if (writeBuffer != null || this.fileChannel.position() != 0) {
                         this.fileChannel.force(false);
                     } else {
@@ -409,6 +426,11 @@ public class MappedFile extends ReferenceResource {
                     log.error("Error occurred when force data to disk.", e);
                 }
 
+                /*
+                    那么flushedPosition应该等于MappedByteBuffer中的写指针。如果writeBuffer不为空，则flushedPosition应等于上一次commit指针。
+                    因为上一次提交的数据就是进入MappedByteBuffer中的数据。如果writeBuffer为空，表示数据是直接进入MappedByteBuffer的，
+                    wrotePosition代表的是MappedByteBuffer中的指针，故设置flushedPosition为wrotePosition。
+                 */
                 this.flushedPosition.set(value);
                 this.release();
             } else {
@@ -419,13 +441,24 @@ public class MappedFile extends ReferenceResource {
         return this.getFlushedPosition();
     }
 
+    /**
+     * 主要用在开启短暂存储池时，主要用于支持瞬态存储池，将消息数据从瞬态存储池中刷写到磁盘中。
+     * invoke：org.apache.rocketmq.store.CommitLog#commitLogService
+     * - org.apache.rocketmq.store.CommitLog.CommitRealTimeService#run()
+     *
+     * @param commitLeastPages 提交最少页数
+     * @return 偏移量
+     */
     public int commit(final int commitLeastPages) {
+        // commit 操作是专门用来处理 开启transientStore-PoolEnable 情况下，将堆外内存写入到映射文件。
         if (writeBuffer == null) {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return this.wrotePosition.get();
         }
+        // 判断是否能够执行 commit 操作
         if (this.isAbleToCommit(commitLeastPages)) {
             if (this.hold()) {
+                // 执行commit
                 commit0(commitLeastPages);
                 this.release();
             } else {
@@ -442,17 +475,32 @@ public class MappedFile extends ReferenceResource {
         return this.committedPosition.get();
     }
 
+    /**
+     * commit 操作是专门用来处理 开启transientStore-PoolEnable 情况下，将堆外内存写入到映射文件。
+     *
+     * @param commitLeastPages 最少提交页数
+     */
     protected void commit0(final int commitLeastPages) {
+
+        // 当前的写指针位置
         int writePos = this.wrotePosition.get();
+        // 最后commit位置
         int lastCommittedPosition = this.committedPosition.get();
 
+        // 如果当前写入位置 - 最后commit位置 大于 0，说明可以提交。
         if (writePos - this.committedPosition.get() > 0) {
             try {
+
+                // 首先创建writeBuffer的共享缓存区，然后将新创建的position回退到上一次提交的位置(committedPosition)
                 ByteBuffer byteBuffer = writeBuffer.slice();
                 byteBuffer.position(lastCommittedPosition);
+                // 设置limit为wrotePosition（当前最大有效数据指针）
                 byteBuffer.limit(writePos);
+
+                // 接着把committedPosition到wrotePosition的数据复制（写入）到FileChannel中
                 this.fileChannel.position(lastCommittedPosition);
                 this.fileChannel.write(byteBuffer);
+                // 更新committedPosition指针为wrotePosition
                 this.committedPosition.set(writePos);
             } catch (Throwable e) {
                 log.error("Error occurred when commit data to FileChannel.", e);
@@ -460,33 +508,60 @@ public class MappedFile extends ReferenceResource {
         }
     }
 
+
+    /**
+     * 是否可以执行 flush 操作
+     *
+     * @param flushLeastPages 最少刷盘页数
+     * @return boolean
+     */
     private boolean isAbleToFlush(final int flushLeastPages) {
+
         int flush = this.flushedPosition.get();
         int write = getReadPosition();
 
+        // 如果文件已满，返回true
         if (this.isFull()) {
             return true;
         }
 
+
+        /*
+            计算wrotePosition（当前writeBuffe的写指针）与上一次提交的指针（flushedPosition）的差值，
+            将其除以OS_PAGE_SIZE得到当前脏页的数量，如果大于flushLeastPages，则返回true。
+         */
         if (flushLeastPages > 0) {
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= flushLeastPages;
         }
 
+        // 如果flushLeastPages小于0，表示只要存在脏页就提交
         return write > flush;
     }
 
+    /**
+     * 是否可以执行 Commit 操作
+     *
+     * @param commitLeastPages 最少提交页数
+     * @return boolean
+     */
     protected boolean isAbleToCommit(final int commitLeastPages) {
         int flush = this.committedPosition.get();
         int write = this.wrotePosition.get();
 
+        // 如果文件已满，返回true
         if (this.isFull()) {
             return true;
         }
 
+        /*
+            计算wrotePosition（当前writeBuffe的写指针）与上一次提交的指针（committedPosition）的差值，
+            将其除以OS_PAGE_SIZE得到当前脏页的数量，如果大于commitLeastPages，则返回true。
+         */
         if (commitLeastPages > 0) {
             return ((write / OS_PAGE_SIZE) - (flush / OS_PAGE_SIZE)) >= commitLeastPages;
         }
 
+        // 如果commitLeastPages小于0，表示只要存在脏页就提交
         return write > flush;
     }
 
@@ -502,6 +577,13 @@ public class MappedFile extends ReferenceResource {
         return this.fileSize == this.wrotePosition.get();
     }
 
+
+    /**
+     * 查找从 pos ~ pos+size 之间的数据
+     *
+     * @param pos 指定偏移量
+     * @return SelectMappedBufferResult
+     */
     public SelectMappedBufferResult selectMappedBuffer(int pos, int size) {
         int readPosition = getReadPosition();
         if ((pos + size) <= readPosition) {
@@ -521,15 +603,29 @@ public class MappedFile extends ReferenceResource {
         return null;
     }
 
+    /**
+     * 查找 pos到当前最大可读指针之间的数据
+     *
+     * @param pos 指定偏移量
+     * @return SelectMappedBufferResult
+     */
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
+
+        // 获取当前文件最大的可读指针
         int readPosition = getReadPosition();
+        // 是否合法
         if (pos < readPosition && pos >= 0) {
             if (this.hold()) {
+                // todo: 因为在整个写入期间都未曾改变MappedByteBuffer的指针，所以mappedByteBuffer.slice()方法返回的共享缓存区空间为整个MappedFile
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+                // 设置开始位置
                 byteBuffer.position(pos);
                 int size = readPosition - pos;
+                // 再次slice，返回的共享缓冲区空间 是已 pos 开始的区域。
                 ByteBuffer byteBufferNew = byteBuffer.slice();
+                // 设置结束位置（限制读取位置）
                 byteBufferNew.limit(size);
+                // 返回数据
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }
@@ -556,6 +652,12 @@ public class MappedFile extends ReferenceResource {
         return true;
     }
 
+    /**
+     * 销毁
+     *
+     * @param intervalForcibly 表示拒绝被销毁的最大存活时间
+     * @return boolean
+     */
     public boolean destroy(final long intervalForcibly) {
         this.shutdown(intervalForcibly);
 

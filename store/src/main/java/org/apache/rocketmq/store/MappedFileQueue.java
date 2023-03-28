@@ -736,7 +736,9 @@ public class MappedFileQueue {
     }
 
     /**
-     * 作用是提交从队列最后一次刷盘位置到当前可写位置之间的数据到磁盘，并更新 committedWhere 位置指针。
+     * 主要用在开启短暂存储池时，主要用于支持瞬态存储池，将消息数据从瞬态存储池中刷写到磁盘中。
+     * invoke：org.apache.rocketmq.store.CommitLog#commitLogService
+     * - org.apache.rocketmq.store.CommitLog.CommitRealTimeService#run()
      *
      * @param commitLeastPages 最少需要刷盘的页数。
      * @return boolean
