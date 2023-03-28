@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 public class PutMessageResult {
+
     private PutMessageStatus putMessageStatus;
     private AppendMessageResult appendMessageResult;
 
@@ -48,7 +49,7 @@ public class PutMessageResult {
     @Override
     public String toString() {
         return "PutMessageResult [putMessageStatus=" + putMessageStatus + ", appendMessageResult="
-            + appendMessageResult + "]";
+                + appendMessageResult + "]";
     }
 
 }

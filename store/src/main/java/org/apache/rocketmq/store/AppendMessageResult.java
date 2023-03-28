@@ -20,20 +20,34 @@ package org.apache.rocketmq.store;
  * When write a message to the commit log, returns results
  */
 public class AppendMessageResult {
-    // Return code
+
+    // 写入操作的结果状态，是一个枚举类型，包括 OK、END_OF_FILE、
     private AppendMessageStatus status;
+
     // Where to start writing
+    // 消息在 Commit Log 中写入的偏移量。
     private long wroteOffset;
+
     // Write Bytes
+    // 消息在 Commit Log 中实际写入的字节数。
     private int wroteBytes;
+
     // Message ID
+    // 消息的唯一标识符，通常使用消息的偏移量和消息的存储时间戳等信息生成。
     private String msgId;
+
     // Message storage timestamp
+    // 消息存储的时间戳。
     private long storeTimestamp;
+
     // Consume queue's offset(step by one)
+    // 消息在 Consume Queue 中的逻辑偏移量
     private long logicsOffset;
+
+    // 消息写入操作在操作系统页缓存中的耗时，单位为毫秒。
     private long pagecacheRT = 0;
 
+    // 在批量写入场景下，表示批量写入的消息数。
     private int msgNum = 1;
 
     public AppendMessageResult(AppendMessageStatus status) {

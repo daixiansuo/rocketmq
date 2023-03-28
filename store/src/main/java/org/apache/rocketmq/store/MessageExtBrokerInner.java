@@ -29,7 +29,7 @@ public class MessageExtBrokerInner extends MessageExt {
 
     // 属性字段
     private String propertiesString;
-    // 消息标签的 hashCode
+    // 消息标签的 hashCode 值
     private long tagsCode;
 
 

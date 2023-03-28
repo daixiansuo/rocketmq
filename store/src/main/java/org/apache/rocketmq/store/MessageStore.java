@@ -33,6 +33,7 @@ public interface MessageStore {
 
     /**
      * 加载以前的消息
+     * <p>
      * Load previously stored messages.
      *
      * @return true if success; false otherwise.

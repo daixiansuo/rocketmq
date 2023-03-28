@@ -65,7 +65,7 @@ public class MessageExt extends Message {
     // 消息Id
     private String msgId;
 
-    // 记录消息在Broker中存储偏移  === 消费位点
+    // 记录消息在Broker中存储偏移
     private long commitLogOffset;
 
     // 消息内容CRC校验值

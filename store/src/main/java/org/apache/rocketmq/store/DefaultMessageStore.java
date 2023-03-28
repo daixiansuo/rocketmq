@@ -390,55 +390,74 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+
+    /**
+     * 将消息存储到存储中。
+     *
+     * @param msg Message instance to store
+     * @return PutMessageResult
+     */
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
+
+        // 如果当前 broker 停止工作，则拒绝写入。
         if (this.shutdown) {
             log.warn("message store has shutdown, so putMessage is forbidden");
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
+        // 如果当前 broker 是 slave 节点，则拒绝写入。
         if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
                 log.warn("message store is slave mode, so putMessage is forbidden ");
             }
-
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         }
 
+        // 如果当前状态是 不可写状态，则拒绝写入。
         if (!this.runningFlags.isWriteable()) {
             long value = this.printTimes.getAndIncrement();
             if ((value % 50000) == 0) {
                 log.warn("message store is not writeable, so putMessage is forbidden " + this.runningFlags.getFlagBits());
             }
-
             return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
         } else {
             this.printTimes.set(0);
         }
 
+        // 消息主题长度超过 127 个字符， 不合法，拒绝写入。
         if (msg.getTopic().length() > Byte.MAX_VALUE) {
             log.warn("putMessage message topic length too long " + msg.getTopic().length());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
+        // 如果消息属性长度超过 32767 个字符，不合法，拒绝写入。
         if (msg.getPropertiesString() != null && msg.getPropertiesString().length() > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long " + msg.getPropertiesString().length());
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
 
+        // 如果操作系统页面缓存繁忙 (即是否有过多的I/O请求排队等待缓存或释放页面)，则拒绝写入。
         if (this.isOSPageCacheBusy()) {
             return new PutMessageResult(PutMessageStatus.OS_PAGECACHE_BUSY, null);
         }
 
+        // 开始时间
         long beginTime = this.getSystemClock().now();
+        // 核心：commitLog 文件写入 ！！！
         PutMessageResult result = this.commitLog.putMessage(msg);
 
+        // 写入耗时
         long elapsedTime = this.getSystemClock().now() - beginTime;
+        // 超过 500ms，打印warn日志
         if (elapsedTime > 500) {
             log.warn("putMessage not in lock elapsed time(ms)={}, bodyLength={}", elapsedTime, msg.getBody().length);
         }
+
+        // 写入完成后，会统计写入所耗费的时间，并更新最大耗时时间
         this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
+        // 如果写入失败，则将写入失败的次数加1。
         if (null == result || !result.isOk()) {
             this.storeStatsService.getPutMessageFailedTimes().incrementAndGet();
         }
@@ -1517,6 +1536,10 @@ public class DefaultMessageStore implements MessageStore {
         }, 6, TimeUnit.SECONDS);
     }
 
+
+    // ==================================== 内部类 ===========================================
+
+
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
@@ -1597,6 +1620,7 @@ public class DefaultMessageStore implements MessageStore {
                         manualDeleteFileSeveralTimes,
                         cleanAtOnce);
 
+                // 小时 转 毫秒 ！！！
                 fileReservedTime *= 60 * 60 * 1000;
 
                 deleteCount = DefaultMessageStore.this.commitLog.deleteExpiredFile(fileReservedTime, deletePhysicFilesInterval,
