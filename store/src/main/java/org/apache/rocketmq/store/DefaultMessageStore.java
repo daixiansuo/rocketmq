@@ -1348,29 +1348,46 @@ public class DefaultMessageStore implements MessageStore {
         return file.exists();
     }
 
+
+    /**
+     * 加载 ConsumeQueue 文件
+     * @return boolean
+     */
     private boolean loadConsumeQueue() {
+
+        // 打开 consumeQueue 存储目录
         File dirLogic = new File(StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()));
+        // 获取目录下所有主题目录
         File[] fileTopicList = dirLogic.listFiles();
         if (fileTopicList != null) {
 
+            // 遍历所有主题
             for (File fileTopic : fileTopicList) {
-                String topic = fileTopic.getName();
 
+                // 文件名称 = 主题名称
+                String topic = fileTopic.getName();
+                // 获取目录下 所有队列目录
                 File[] fileQueueIdList = fileTopic.listFiles();
                 if (fileQueueIdList != null) {
+                    // 遍历队列所有队列
                     for (File fileQueueId : fileQueueIdList) {
+
                         int queueId;
                         try {
+                            // 队列ID
                             queueId = Integer.parseInt(fileQueueId.getName());
                         } catch (NumberFormatException e) {
                             continue;
                         }
+
+                        // 创建逻辑 消费队列
                         ConsumeQueue logic = new ConsumeQueue(
                                 topic,
                                 queueId,
                                 StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir()),
                                 this.getMessageStoreConfig().getMappedFileSizeConsumeQueue(),
                                 this);
+                        // 添加到 消息队列存储缓存表
                         this.putConsumeQueue(topic, queueId, logic);
                         if (!logic.load()) {
                             return false;
@@ -1405,13 +1422,22 @@ public class DefaultMessageStore implements MessageStore {
         return transientStorePool;
     }
 
+    /**
+     * 添加到 消息队列存储缓存表
+     * @param topic 主题
+     * @param queueId 队列ID
+     * @param consumeQueue 消费队列
+     */
     private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueue consumeQueue) {
+        // 根据topic查询
         ConcurrentMap<Integer/* queueId */, ConsumeQueue> map = this.consumeQueueTable.get(topic);
         if (null == map) {
+            // 不存在创建、添加
             map = new ConcurrentHashMap<Integer/* queueId */, ConsumeQueue>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
         } else {
+            // 覆盖添加
             map.put(queueId, consumeQueue);
         }
     }
