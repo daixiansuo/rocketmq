@@ -193,6 +193,14 @@ public class CommitLog {
         return this.getData(offset, offset == 0);
     }
 
+
+    /**
+     * 根据 offset 查询在 CommitLog 文件对应的数据
+     *
+     * @param offset                commitLogOffset
+     * @param returnFirstOnNotFound 如果没有找到对应偏移量的文件，是否返回第一个文件
+     * @return SelectMappedBufferResult
+     */
     public SelectMappedBufferResult getData(final long offset, final boolean returnFirstOnNotFound) {
         // 获取commitLog文件大小
         int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();

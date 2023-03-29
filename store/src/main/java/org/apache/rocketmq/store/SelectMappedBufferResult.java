@@ -20,12 +20,16 @@ import java.nio.ByteBuffer;
 
 public class SelectMappedBufferResult {
 
+    // 当前读取数据的 在整个文件组（commitLog、consumeQueue，indexFile）中的 偏移量！
     private final long startOffset;
 
+    // 数据
     private final ByteBuffer byteBuffer;
 
+    // 读取数据的大小
     private int size;
 
+    // 对应的 映射文件
     private MappedFile mappedFile;
 
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
