@@ -19,37 +19,59 @@ package org.apache.rocketmq.store;
 import java.util.Map;
 
 public class DispatchRequest {
-    private final String topic;
-    private final int queueId;
-    private final long commitLogOffset;
-    private int msgSize;
-    private final long tagsCode;
-    private final long storeTimestamp;
-    private final long consumeQueueOffset;
-    private final String keys;
-    private final boolean success;
-    private final String uniqKey;
 
+    // 主题
+    private final String topic;
+    // 队列ID
+    private final int queueId;
+    // 消息在 CommitLog 中的物理偏移量。
+    private final long commitLogOffset;
+    // 消息大小
+    private int msgSize;
+    // 消息的 TagCode，用于查询消息。
+    private final long tagsCode;
+    // 消息存储时间戳。
+    private final long storeTimestamp;
+    // 消息在 ConsumeQueue 中的偏移量。
+    private final long consumeQueueOffset;
+    // 消息关键词
+    private final String keys;
+    // 是否成功发送消息。
+    private final boolean success;
+    // 消息的唯一键。
+    private final String uniqKey;
+    // 消息的系统标识
     private final int sysFlag;
+
+    // 如果是事务消息，则该字段表示消息的事务偏移量；否则为 0。
     private final long preparedTransactionOffset;
+    // 消息的属性集合，用于消息过滤。
     private final Map<String, String> propertiesMap;
+    // 消息的 BitMap，用于查询消息。
     private byte[] bitMap;
 
+    /**
+     * 表示消息在缓冲区中的大小，初始值为-1。
+     * <p>
+     * 在某些情况下，消息可能被封装在其他对象中，如TransactionMQProducer发送事务消息时，
+     * 需要将原始消息和事务相关信息封装在一个TransactionMQProducerImpl对象中。
+     * 在这种情况下，消息的实际大小可能小于封装后的对象的大小。因此，bufferSize记录的是封装后的对象大小，而msgSize记录的是消息实际大小，两者可能不相等
+     */
     private int bufferSize = -1;//the buffer size maybe larger than the msg size if the message is wrapped by something
 
     public DispatchRequest(
-        final String topic,
-        final int queueId,
-        final long commitLogOffset,
-        final int msgSize,
-        final long tagsCode,
-        final long storeTimestamp,
-        final long consumeQueueOffset,
-        final String keys,
-        final String uniqKey,
-        final int sysFlag,
-        final long preparedTransactionOffset,
-        final Map<String, String> propertiesMap
+            final String topic,
+            final int queueId,
+            final long commitLogOffset,
+            final int msgSize,
+            final long tagsCode,
+            final long storeTimestamp,
+            final long consumeQueueOffset,
+            final String keys,
+            final String uniqKey,
+            final int sysFlag,
+            final long preparedTransactionOffset,
+            final Map<String, String> propertiesMap
     ) {
         this.topic = topic;
         this.queueId = queueId;

@@ -645,10 +645,12 @@ public class MappedFileQueue {
     }
 
     /**
+     * 目前只有 ConsumeQueue 使用！
+     * <p>
      * 根据队列偏移量删除过期的文件，返回删除的文件数目
      *
-     * @param offset   队列偏移量
-     * @param unitSize 单位大小
+     * @param offset   commitLogOffset 偏移量
+     * @param unitSize 单位大小 eg：consumeQueue条目 = 20字节
      * @return 删除的文件数目
      */
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
@@ -670,7 +672,7 @@ public class MappedFileQueue {
                 // 从映射文件中选择最后一个单位大小. eg: consumeQueue 文件条目 单个条目 20字节 ！！
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer(this.mappedFileSize - unitSize);
                 if (result != null) {
-                    // 获取逻辑队列中的最大偏移量
+                    // 获取逻辑队列中的最大偏移量， consumeQueue条目组成 = commitLog偏移量 + 文件大小 + tag哈希值
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
                     result.release();
                     // 判断当前映射文件中的最大偏移量 是否小于传入的偏移量

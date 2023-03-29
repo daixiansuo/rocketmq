@@ -127,7 +127,7 @@ public interface MessageStore {
     long getCommitLogOffsetInQueue(final String topic, final int queueId, final long consumeQueueOffset);
 
     /**
-     * 通过指定的时间戳查找消息在队列中的物理偏移量，返回值是该时间戳对应的消息的物理偏移量
+     * 通过指定的时间戳查找消息在队列中的物理偏移量，返回值是该时间戳对应的消息的物理偏移量 （consumeQueueOffset）
      * <p>
      * Look up the physical offset of the message whose store timestamp is as specified.
      *

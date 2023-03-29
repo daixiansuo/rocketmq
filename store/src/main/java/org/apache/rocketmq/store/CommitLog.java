@@ -262,6 +262,7 @@ public class CommitLog {
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             // Clear ConsumeQueue redundant data
+            // 截断 ConsumeQueue 的逻辑文件，用于清理消费队列中 过期或者脏数据 消息，
             if (maxPhyOffsetOfConsumeQueue >= processOffset) {
                 log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
                 this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
@@ -553,6 +554,7 @@ public class CommitLog {
             this.mappedFileQueue.truncateDirtyFiles(processOffset);
 
             // Clear ConsumeQueue redundant data
+            // 截断 ConsumeQueue 的逻辑文件，用于清理消费队列中 过期或者截断的脏数据 的消息，
             if (maxPhyOffsetOfConsumeQueue >= processOffset) {
                 log.warn("maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
                 this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
@@ -959,18 +961,36 @@ public class CommitLog {
     }
 
     /**
+     *
      * According to receive certain message or offset storage time if an error occurs, it returns -1
      */
+
+
+    /**
+     * 该方法用于获取指定消息在 CommitLog 中的存储时间戳。如果发生错误，则返回 -1。
+     *
+     * @param offset 指定消息在 CommitLog 中的物理偏移量
+     * @param size   指定消息的大小
+     * @return 存储时间戳，如果发生错误则返回 -1
+     */
     public long pickupStoreTimestamp(final long offset, final int size) {
+
+        // 先判断是否大于 当前CommitLog目录的最小偏移量
         if (offset >= this.getMinOffset()) {
+            // 根据指定的偏移量和大小，从 CommitLog 中获取对应的消息
             SelectMappedBufferResult result = this.getMessage(offset, size);
             if (null != result) {
                 try {
+                    // 从消息的系统标志中获取 BornHost 的长度
                     int sysFlag = result.getByteBuffer().getInt(MessageDecoder.SYSFLAG_POSITION);
                     int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+
+                    // 计算消息存储时间戳的位置，因为 BORNHOST 后面就是 消息存储的时间戳 ！！！
                     int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
+                    // 从消息中获取存储时间戳并返回
                     return result.getByteBuffer().getLong(msgStoreTimePos);
                 } finally {
+                    // 释放 SelectMappedBufferResult 对象
                     result.release();
                 }
             }
@@ -1039,8 +1059,9 @@ public class CommitLog {
 
     /**
      * 追加数据
+     *
      * @param startOffset 起始偏移量
-     * @param data 数据
+     * @param data        数据
      * @return boolean
      */
     public boolean appendData(long startOffset, byte[] data) {
@@ -1160,6 +1181,8 @@ public class CommitLog {
 
     /**
      * 异步刷盘
+     * <p>
+     * 异步刷盘有两种方式，但是其逻辑都是需要刷盘的数据OS_PAGE_SIZE的4倍即（1024 * 4）*4=16k 或者 距上一次刷盘时间>=200ms时才刷盘，提高数据的刷盘性能
      */
     class FlushRealTimeService extends FlushCommitLogService {
         private long lastFlushTimestamp = 0;

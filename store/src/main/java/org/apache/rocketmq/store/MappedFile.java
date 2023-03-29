@@ -69,10 +69,16 @@ public class MappedFile extends ReferenceResource {
     // 当前文件的写指针，从0开始（内存映射文件中的写指针），即已写入到MappedFile中的数据位置。
     protected final AtomicInteger wrotePosition = new AtomicInteger(0);
 
-    // 当前文件的提交指针，如果开启transientStore-PoolEnable，则数据会存储在TransientStorePool中，然后提交到内存映射ByteBuffer中，再写入磁盘。
+    /**
+     * TODO：committedPosition 与 wrotePosition 指针 处理开启 transientStorePool 对应的 writeBuffer！！
+     * 当前文件的提交指针，如果开启transientStore-PoolEnable，则数据会存储在TransientStorePool中，然后提交到内存映射ByteBuffer中，再写入磁盘。
+     */
     protected final AtomicInteger committedPosition = new AtomicInteger(0);
 
-    // 将该指针之前的数据持久化存储到磁盘中。（已刷盘的数据位置）
+    /**
+     * TODO：flushedPosition 与 wrotePosition 指针 处理映射文件 mappedByteBuffer ！！
+     * 将该指针之前的数据持久化存储到磁盘中。（已刷盘的数据位置）
+     */
     private final AtomicInteger flushedPosition = new AtomicInteger(0);
 
     // 文件大小 commitLog、ConsumeQueue、Index 文件大小

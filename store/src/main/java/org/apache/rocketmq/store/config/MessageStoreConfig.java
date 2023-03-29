@@ -428,9 +428,23 @@ public class MessageStoreConfig {
         this.mappedFileSizeCommitLog = mappedFileSizeCommitLog;
     }
 
+
+    /**
+     * 该方法的作用是获取 ConsumeQueue 映射文件的大小，单位是字节
+     *
+     * @return
+     */
     public int getMappedFileSizeConsumeQueue() {
 
+        /*
+            计算的方法是将 mappedFileSizeConsumeQueue 除以 ConsumeQueue.CQ_STORE_UNIT_SIZE 后向上取整，
+            再将结果乘以 ConsumeQueue.CQ_STORE_UNIT_SIZE 得到最终的映射文件大小。
+            其中，ConsumeQueue.CQ_STORE_UNIT_SIZE 是一个常量，表示 ConsumeQueue 文件中每个消息存储单元的大小，为 20 字节。
+         */
+
+        // 因为 mappedFileSizeConsumeQueue 可以在 broker.conf 文件中配置自定义。 所以需要先根据其值 除于 单个条目大小，然后向上取整数。
         int factor = (int) Math.ceil(this.mappedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
+        // 然后再乘以 单个条目大小，最终返回 单个映射文件的大小 ！！！
         return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
 
