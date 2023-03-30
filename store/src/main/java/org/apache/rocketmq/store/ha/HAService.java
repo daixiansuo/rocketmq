@@ -78,6 +78,8 @@ public class HAService {
 
     public boolean isSlaveOK(final long masterPutWhere) {
         boolean result = this.connectionCount.get() > 0;
+
+        //  HaSlaveFallbehindMax 高可用模式下，从节点最大允许与主节点数据落后的字节数。超过这个值，从节点将被视为失效，由其他从节点接替。
         result =
             result
                 && ((masterPutWhere - this.push2SlaveMaxOffset.get()) < this.defaultMessageStore

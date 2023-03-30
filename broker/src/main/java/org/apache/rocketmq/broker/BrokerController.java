@@ -291,6 +291,7 @@ public class BrokerController {
             }
         }
 
+        // 消息存储 各个文件数据加载。
         result = result && this.messageStore.load();
 
         if (result) {

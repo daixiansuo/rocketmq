@@ -804,7 +804,7 @@ public class CommitLog {
 
             // 类型转换，GroupCommitService 为同步刷盘处理类
             final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
-            // 是否存储成功
+            // 是否等待存储完成
             if (messageExt.isWaitStoreMsgOK()) {
                 // 创建同步刷盘请求
                 GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
@@ -834,15 +834,34 @@ public class CommitLog {
         }
     }
 
+
+    /**
+     * 方法的作用是处理高可用（High Availability，HA）的相关逻辑，确保消息可靠地被存储和复制到其他节点上。
+     * <p>
+     * 具体来说，如果 Broker 的角色是同步主节点（SYNC_MASTER），并且消息的 waitStoreMsgOK 属性为 true，
+     * 那么在消息被追加到 CommitLog 文件后，会检查从节点是否正常，如果正常则将该消息分组提交请求（GroupCommitRequest）加入到 HAService 中的请求队列中，
+     * 等待从节点复制该消息。
+     *
+     * @param result           append
+     * @param putMessageResult put
+     * @param messageExt       消息
+     */
     public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
+        // 同步主节点
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
+            // 高可用服务
             HAService service = this.defaultMessageStore.getHaService();
+            // 是否等待存储完成
             if (messageExt.isWaitStoreMsgOK()) {
-                // Determine whether to wait
+                // 检查从节点是否正常，即是否落后数据在 规定阈值之内。
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
+
+                    // 将该消息分组提交请求（GroupCommitRequest）加入到 HAService 中的请求队列中，等待从节点复制该消息
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                     service.putRequest(request);
                     service.getWaitNotifyObject().wakeupAll();
+
+                    // 从节点在一定时间内没有复制该消息，则认为复制超时，返回 PutMessageStatus.FLUSH_SLAVE_TIMEOUT 状态
                     boolean flushOK =
                             request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     if (!flushOK) {
@@ -854,6 +873,7 @@ public class CommitLog {
                 // Slave problem
                 else {
                     // Tell the producer, slave not available
+                    // 如果从节点不可用，则返回 PutMessageStatus.SLAVE_NOT_AVAILABLE 状态。
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
             }
