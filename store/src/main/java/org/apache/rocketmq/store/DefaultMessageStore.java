@@ -344,6 +344,7 @@ public class DefaultMessageStore implements MessageStore {
             this.handleScheduleMessageService(messageStoreConfig.getBrokerRole());
         }
 
+        // 启动 ConsumeQueue 文件刷盘线程，将内存中的 ConsumeQueue 数据刷写到磁盘
         this.flushConsumeQueueService.start();
         this.commitLog.start();
         this.storeStatsService.start();
@@ -1974,37 +1975,49 @@ public class DefaultMessageStore implements MessageStore {
      * ConsumeQueue 文件刷盘线程
      */
     class FlushConsumeQueueService extends ServiceThread {
+
+        // 重试次数
         private static final int RETRY_TIMES_OVER = 3;
+        // 记录最后刷盘时间
         private long lastFlushTimestamp = 0;
 
         private void doFlush(int retryTimes) {
+
+            // 刷盘ConsumeQueue时的最小刷盘页数，默认为2。
             int flushConsumeQueueLeastPages = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();
 
+            // 如果当前是重试，则将最小刷盘页数设为0。
             if (retryTimes == RETRY_TIMES_OVER) {
                 flushConsumeQueueLeastPages = 0;
             }
 
             long logicsMsgTimestamp = 0;
-
+            // 消费队列刷盘时间间隔，默认值为1分钟（1000 * 60毫秒）。
             int flushConsumeQueueThoroughInterval = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueThoroughInterval();
+
+            // 如果当前时间距离上次刷盘超过了设定的阈值，则将最小刷盘页数设为0，并获取逻辑消息时间戳
             long currentTimeMillis = System.currentTimeMillis();
             if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
+                // 从 检查点文件 获取上次更新时间
                 logicsMsgTimestamp = DefaultMessageStore.this.getStoreCheckpoint().getLogicsMsgTimestamp();
             }
 
+            // 所有 ConsumeQueue 文件
             ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
-
+            // 对每个队列执行刷盘操作
             for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
                 for (ConsumeQueue cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {
+                        // 刷盘
                         result = cq.flush(flushConsumeQueueLeastPages);
                     }
                 }
             }
 
+            // 如果最小刷盘页数为0，则将逻辑消息时间戳刷盘，同时刷盘存储检查点。
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
                     DefaultMessageStore.this.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
@@ -2018,14 +2031,17 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
+                    // ConsumeQueue 刷盘间隔，默认为 1000ms
                     int interval = DefaultMessageStore.this.getMessageStoreConfig().getFlushIntervalConsumeQueue();
                     this.waitForRunning(interval);
+                    // 执行 doFlush(1) 方法，将 ConsumeQueue 刷写到磁盘；
                     this.doFlush(1);
                 } catch (Exception e) {
                     DefaultMessageStore.log.warn(this.getServiceName() + " service has exception. ", e);
                 }
             }
 
+            // 如果 FlushConsumeQueueService 被停止，则执行 doFlush(RETRY_TIMES_OVER) 方法，将 ConsumeQueue 刷写到磁盘，并结束该线程；
             this.doFlush(RETRY_TIMES_OVER);
 
             DefaultMessageStore.log.info(this.getServiceName() + " service end");
